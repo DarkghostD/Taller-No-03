@@ -9,22 +9,31 @@ package object Newton {
   case class Expo(e1: Expr, e2: Expr) extends Expr
   case class Logaritmo(e1: Expr) extends Expr
 
-  // Mostrar convierte una expresión en una cadena simbólica
+  /**
+   * Ejercicio 1.1
+   * funcion que dada una expresion e devuelve una cadena que
+   * representa la definicion simbolica de la funcion
+   */
   def mostrar(e: Expr): String = e match {
     case Numero(d) => d.toString
     case Atomo(x) => x.toString
-    case Suma(e1, e2) => s"(${mostrar(e1)} + ${mostrar(e2)})"
-    case Prod(e1, e2) => s"(${mostrar(e1)} * ${mostrar(e2)})"
-    case Resta(e1, e2) => s"(${mostrar(e1)} - ${mostrar(e2)})"
-    case Div(e1, e2) => s"(${mostrar(e1)} / ${mostrar(e2)})"
-    case Expo(e1, e2) => s"(${mostrar(e1)} ^ ${mostrar(e2)})"
-    case Logaritmo(e1) => s"log(${mostrar(e1)})"
+    case Suma(e1, e2) => "("+ mostrar(e1) +"+"+ mostrar(e2) +")"
+    case Prod(e1, e2) => "("+ mostrar(e1) +"*"+ mostrar(e2) +")"
+    case Resta(e1, e2) => "("+ mostrar(e1) +"-"+ mostrar(e2) +")"
+    case Div(e1, e2) => "("+ mostrar(e1) +"/"+ mostrar(e2) +")"
+    case Expo(e1, e2) => "("+ mostrar(e1) +"^"+ mostrar(e2) +")"
+    case Logaritmo(e1) => "(lg("+ mostrar(e1)+"))"
   }
 
-  // Derivar calcula la derivada de una expresión respecto a una variable
+  /**
+   * Ejercicio 1.2
+   * funcion que dada una funcion representada por la expresion
+   * f y un atomo a (que representa la variable de la funcion), retorna la expresion correspondiente a su derivada 1
+   * con respecto a esa variable
+   */
   def derivar(f: Expr, a: Atomo): Expr = f match {
     case Numero(_) => Numero(0)
-    case Atomo(x) if x == a.x => Numero(1)
+    case Atomo(x) => if (f == a) Numero(1) else Numero(0)
     case Atomo(_) => Numero(0)
     case Suma(e1, e2) => Suma(derivar(e1, a), derivar(e2, a))
     case Resta(e1, e2) => Resta(derivar(e1, a), derivar(e2, a))
@@ -32,13 +41,17 @@ package object Newton {
     case Div(e1, e2) => Div(Resta(Prod(derivar(e1, a), e2), Prod(e1, derivar(e2, a))), Expo(e2, Numero(2)))
     case Expo(Atomo(x), Numero(n)) if x == a.x => Prod(Numero(n), Expo(Atomo(x), Numero(n - 1)))
     case Logaritmo(e1) => Div(derivar(e1, a), e1)
-    case _ => throw new UnsupportedOperationException("Derivación no implementada para esta expresión")
   }
 
-  // Evaluar evalúa una expresión en un valor dado para la variable
+  /**
+   * Ejercicio 1.3
+   * funcion que dada una funcion representada por la expresion
+   *  f y un atomo a (que representa la variable de la funcion), y un valor v flotante, calcula la
+   *  evaluacion de la funcion en v
+   */
   def evaluar(f: Expr, a: Atomo, v: Double): Double = f match {
     case Numero(d) => d
-    case Atomo(x) if x == a.x => v
+    case Atomo(x) => v
     case Suma(e1, e2) => evaluar(e1, a, v) + evaluar(e2, a, v)
     case Resta(e1, e2) => evaluar(e1, a, v) - evaluar(e2, a, v)
     case Prod(e1, e2) => evaluar(e1, a, v) * evaluar(e2, a, v)
@@ -47,32 +60,56 @@ package object Newton {
     case Logaritmo(e1) => Math.log(evaluar(e1, a, v))
   }
 
-  // Limpiar simplifica la expresión eliminando ceros y unos innecesarios
-  def limpiar(f: Expr): Expr = f match {
-    case Suma(Numero(0), e) => limpiar(e)
-    case Suma(e, Numero(0)) => limpiar(e)
-    case Prod(Numero(1), e) => limpiar(e)
-    case Prod(e, Numero(1)) => limpiar(e)
-    case Prod(Numero(0), _) => Numero(0)
-    case Prod(_, Numero(0)) => Numero(0)
-    case Suma(e1, e2) => Suma(limpiar(e1), limpiar(e2))
-    case Prod(e1, e2) => Prod(limpiar(e1), limpiar(e2))
-    case Resta(e1, e2) => Resta(limpiar(e1), limpiar(e2))
-    case Div(e1, e2) => Div(limpiar(e1), limpiar(e2))
-    case Expo(e1, e2) => Expo(limpiar(e1), limpiar(e2))
-    case Logaritmo(e1) => Logaritmo(limpiar(e1))
-    case _ => f
+  /**
+   * Ejercicio 1.4
+   * funcion limpiar que dada una funcion representada por la expresion
+   *  f, retorna una formula equivalente pero que no contenga ceros ni unos innecesarios.
+   */
+  def limpiar(f:Expr):Expr = {
+    def limpiarAux(f:Expr): Expr = f match {
+      case Numero(d) => Numero(d)
+      case Atomo(x) => Atomo(x)
+      case Suma(e1, e2) =>
+        if (e1 == Numero(0)) limpiarAux(e2)
+        else if (e2 == Numero(0)) limpiarAux(e1)
+        else Suma(limpiarAux(e1), limpiarAux(e2))
+      case Resta(e1, e2) =>
+        if (e1 == Numero(0)) Prod(limpiarAux(e2), Numero(-1))
+        else if (e2 == Numero(0)) limpiarAux(e1)
+        else Resta(limpiarAux(e1), limpiarAux(e2))
+      case Prod(e1, e2) =>
+        if (e1 == Numero(0) || e2 == Numero(0)) Numero(0)
+        else if (e1 == Numero(1)) limpiarAux(e2)
+        else if (e2 == Numero(1)) limpiarAux(e1)
+        else Prod(limpiarAux(e1), limpiarAux(e2))
+      case Div(e1, e2) =>
+        if (e1 == Numero(0)) Numero(0)
+        else if (e2 == Numero(1)) limpiarAux(e1)
+        else Div(limpiarAux(e1), limpiarAux(e2))
+      case Expo(e1, e2) =>
+        if (e1 == Numero(0)) Numero(0)
+        else if (e1 == Numero(1) || e2 == Numero(0)) Numero(1)
+        else if (e2 == Numero(1)) limpiarAux(e1)
+        else Expo(limpiarAux(e1), limpiarAux(e2))
+      case Logaritmo(e1) => Logaritmo(limpiarAux(e1))
+    }
+    val expresionLimpia = limpiarAux(f)
+    if(expresionLimpia == f) expresionLimpia
+    else limpiar(expresionLimpia)
   }
 
-  // Raíz de Newton
-  def raizNewton(f: Expr, a: Atomo, x0: Double, ba: (Expr, Atomo, Double) => Boolean): Double = {
-    def newtonRecursivo(x: Double): Double = {
-      val fx = evaluar(f, a, x)
-      val fdx = evaluar(derivar(f, a), a, x)
-      val nuevoX = x - (fx / fdx)
-      if (ba(f, a, nuevoX)) nuevoX
-      else newtonRecursivo(nuevoX)
+  /**
+   * Ejercicio 1.5
+   * funcion que que dada una funcion representada
+   * por la expresion f y un atomo a (que representa la variable de la funcion), y un valor
+   * x0 flotante, candidato a raız de f, y una funcion booleana ba, retorna una raız, r, de la
+   * funcion usando el metodo de Newton
+   */
+  def raizNewton(f:Expr, a:Atomo, x0:Double, ba:(Expr, Atomo, Double)=>Boolean):Double = {
+    if(ba(f, a, x0)) x0
+    else {
+      val x1 = x0 - (evaluar(f, a, x0)/evaluar(derivar(f, a), a, x0))
+      raizNewton(f, a, x1, ba)
     }
-    newtonRecursivo(x0)
   }
 }
