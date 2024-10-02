@@ -63,7 +63,7 @@ package object Newton {
   /**
    * Ejercicio 1.4
    * funcion limpiar que dada una funcion representada por la expresion
-   *  f, retorna una formula equivalente pero que no contenga ceros ni unos innecesarios.
+   *  f, retorna una formula equivalente pero que no contenga ceros ni unos innecesarios
    */
   def limpiar(f:Expr):Expr = {
     def limpiarAux(f:Expr): Expr = f match {
